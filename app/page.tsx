@@ -3,7 +3,6 @@ import { readHistory, readNetworkGrowth, tierDeltas, totalUsers, isStale } from 
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { TierCard } from './components/TierCard'
 import { TierBarChart } from './components/TierBarChart'
-import { TotalLineChart } from './components/TotalLineChart'
 import { NetworkGrowthChart } from './components/NetworkGrowthChart'
 import { HistoryTable } from './components/HistoryTable'
 import { StaleWarning } from './components/StaleWarning'
@@ -35,7 +34,6 @@ export default function Home() {
   const total = totalUsers(latest.counts)
   const totalDelta = total - (previous ? totalUsers(previous.counts) : total)
   const stale = isStale(snapshots)
-  const linePoints = snapshots.map((s) => ({ date: s.date, total: totalUsers(s.counts) }))
   const networkGrowth = readNetworkGrowth()
 
   return (
@@ -55,6 +53,7 @@ export default function Home() {
             <div className="text-xs text-gray-400">
               total users · updated {formatDateTime(latest.date)}
             </div>
+            <div className="text-xs text-gray-400">Only users with at least one badge are counted</div>
           </div>
         </div>
       </header>
@@ -74,17 +73,11 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-gray-700">
-              Current distribution by tier (compressed scale)
-            </h2>
-            <TierBarChart tiers={TIERS} counts={latest.counts} />
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-gray-700">Total users over time</h2>
-            <TotalLineChart points={linePoints} />
-          </div>
+        <section className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold text-gray-700">
+            Current distribution by tier (compressed scale)
+          </h2>
+          <TierBarChart tiers={TIERS} counts={latest.counts} />
         </section>
 
         {networkGrowth.length > 0 && (

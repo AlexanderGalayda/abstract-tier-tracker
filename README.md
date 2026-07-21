@@ -117,7 +117,7 @@ node scripts/update-network-growth.mjs
 app/
   page.tsx                 dashboard (server component, reads history.json)
   api/history/route.ts     GET endpoint exposing the same data as JSON
-  components/              TierCard, TierBarChart, TotalLineChart, NetworkGrowthChart, HistoryTable, ...
+  components/              TierCard, TierBarChart, NetworkGrowthChart, HistoryTable, ...
 lib/
   tiers.ts                 tier id/name/threshold/color table
   history.ts               read + derive (totals, deltas, staleness) from history.json / network-growth.json
