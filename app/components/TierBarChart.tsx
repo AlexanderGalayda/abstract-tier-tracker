@@ -11,7 +11,9 @@ import {
   YAxis,
 } from 'recharts'
 import { formatNumber } from '@/lib/format'
+import { CHART_COLORS } from '@/lib/chartTheme'
 import type { TierInfo } from '@/lib/tiers'
+import { useTheme } from './ThemeProvider'
 
 interface Props {
   tiers: TierInfo[]
@@ -25,6 +27,9 @@ const POWER = 0.4
 const compress = (v: number) => Math.pow(v, POWER)
 
 export function TierBarChart({ tiers, counts }: Props) {
+  const { theme } = useTheme()
+  const colors = CHART_COLORS[theme]
+
   const data = tiers.map((tier) => {
     const actual = counts[String(tier.id)] ?? 0
     return {
@@ -50,8 +55,8 @@ export function TierBarChart({ tiers, counts }: Props) {
         <BarChart data={data} margin={{ top: 20, right: 8, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="name"
-            tick={{ fontSize: 12, fill: '#6b7280' }}
-            axisLine={{ stroke: '#e5e7eb' }}
+            tick={{ fontSize: 12, fill: colors.tick }}
+            axisLine={{ stroke: colors.grid }}
             tickLine={false}
           />
           <YAxis
@@ -59,14 +64,21 @@ export function TierBarChart({ tiers, counts }: Props) {
             domain={[0, compress(Math.pow(10, maxPower))]}
             ticks={realTicks.map(compress)}
             allowDataOverflow
-            tick={{ fontSize: 12, fill: '#6b7280' }}
-            axisLine={{ stroke: '#e5e7eb' }}
+            tick={{ fontSize: 12, fill: colors.tick }}
+            axisLine={{ stroke: colors.grid }}
             tickLine={false}
             tickFormatter={(v) => tickLabels.get(Number(v)) ?? formatNumber(Number(v))}
             width={64}
           />
           <Tooltip
-            cursor={{ fill: '#f3f4f6' }}
+            cursor={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }}
+            contentStyle={{
+              backgroundColor: theme === 'dark' ? '#1e2126' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#2b2f36' : '#e5e7eb'}`,
+              borderRadius: 8,
+              color: theme === 'dark' ? '#e8eaed' : '#111827',
+            }}
+            labelStyle={{ color: theme === 'dark' ? '#e8eaed' : '#111827' }}
             formatter={(_value, _name, item) => [
               formatNumber(Number((item?.payload as { actual?: number })?.actual ?? 0)),
               'Users',
@@ -80,7 +92,7 @@ export function TierBarChart({ tiers, counts }: Props) {
               dataKey="actual"
               position="top"
               formatter={(v: unknown) => formatNumber(Number(v))}
-              style={{ fontSize: 11, fill: '#6b7280' }}
+              style={{ fontSize: 11, fill: colors.tick }}
             />
           </Bar>
         </BarChart>

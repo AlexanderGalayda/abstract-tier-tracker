@@ -35,7 +35,9 @@ export function ShareCard({ tiers, counts, deltas, total, totalDelta }: Props) {
   }
 
   return (
-    <div className="rounded-xl bg-gray-900 p-5 text-gray-100 shadow-sm">
+    <div
+      className="rounded-xl bg-gray-900 p-5 text-gray-100 shadow-sm dark:border dark:border-[#2b2f36] dark:bg-gradient-to-br dark:from-[#242830] dark:to-[#1a1d22]"
+    >
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-sm font-semibold text-gray-200">Share this week&apos;s update</h2>
         <a

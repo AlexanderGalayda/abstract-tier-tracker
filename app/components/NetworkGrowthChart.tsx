@@ -12,7 +12,9 @@ import {
 } from 'recharts'
 import { formatNumber } from '@/lib/format'
 import { periodLabel, resampleGrowth, type GrowthPeriod } from '@/lib/networkGrowth'
+import { CHART_COLORS } from '@/lib/chartTheme'
 import type { NetworkGrowthPoint } from '@/lib/types'
+import { useTheme } from './ThemeProvider'
 
 const PERIODS: { value: GrowthPeriod; label: string }[] = [
   { value: 'month', label: 'Month' },
@@ -22,6 +24,8 @@ const PERIODS: { value: GrowthPeriod; label: string }[] = [
 
 export function NetworkGrowthChart({ points }: { points: NetworkGrowthPoint[] }) {
   const [period, setPeriod] = useState<GrowthPeriod>('month')
+  const { theme } = useTheme()
+  const colors = CHART_COLORS[theme]
 
   const data = useMemo(
     () =>
@@ -41,7 +45,9 @@ export function NetworkGrowthChart({ points }: { points: NetworkGrowthPoint[] })
             type="button"
             onClick={() => setPeriod(p.value)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
-              period === p.value ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'
+              period === p.value
+                ? 'bg-gray-900 text-white dark:bg-[#2b2f36] dark:text-[#e8eaed]'
+                : 'text-gray-500 hover:bg-gray-100 dark:text-[#9aa1ab] dark:hover:bg-white/5'
             }`}
           >
             {p.label}
@@ -55,23 +61,29 @@ export function NetworkGrowthChart({ points }: { points: NetworkGrowthPoint[] })
           initialDimension={{ width: 500, height: 288 }}
         >
           <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: '#6b7280' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tick={{ fontSize: 12, fill: colors.tick }}
+              axisLine={{ stroke: colors.grid }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 12, fill: '#6b7280' }}
-              axisLine={{ stroke: '#e5e7eb' }}
+              tick={{ fontSize: 12, fill: colors.tick }}
+              axisLine={{ stroke: colors.grid }}
               tickLine={false}
               tickFormatter={(v) => formatNumber(Number(v))}
               width={64}
             />
             <Tooltip
+              contentStyle={{
+                backgroundColor: theme === 'dark' ? '#1e2126' : '#ffffff',
+                border: `1px solid ${theme === 'dark' ? '#2b2f36' : '#e5e7eb'}`,
+                borderRadius: 8,
+                color: theme === 'dark' ? '#e8eaed' : '#111827',
+              }}
               formatter={(v) => [formatNumber(Number(v)), 'Wallets']}
-              labelStyle={{ color: '#111827' }}
+              labelStyle={{ color: theme === 'dark' ? '#e8eaed' : '#111827' }}
             />
             <Line
               type="monotone"
