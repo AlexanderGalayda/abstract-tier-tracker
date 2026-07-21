@@ -31,7 +31,11 @@ export function TierBarChart({ tiers, counts }: Props) {
 
   return (
     <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        initialDimension={{ width: 500, height: 288 }}
+      >
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <XAxis
             dataKey="name"
