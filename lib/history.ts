@@ -1,9 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { HistoryFile, Snapshot, TierCounts } from './types'
+import type { HistoryFile, NetworkGrowthPoint, Snapshot, TierCounts } from './types'
 import { TIERS } from './tiers'
 
 const HISTORY_PATH = path.join(process.cwd(), 'data', 'history.json')
+const NETWORK_GROWTH_PATH = path.join(process.cwd(), 'data', 'network-growth.json')
 
 export function readHistory(): Snapshot[] {
   let raw: string
@@ -41,4 +42,15 @@ export function isStale(snapshots: Snapshot[], staleDays = 10): boolean {
   const latest = snapshots[snapshots.length - 1]
   const ageMs = Date.now() - new Date(latest.fetchedAt).getTime()
   return ageMs > staleDays * 24 * 60 * 60 * 1000
+}
+
+export function readNetworkGrowth(): NetworkGrowthPoint[] {
+  let raw: string
+  try {
+    raw = fs.readFileSync(NETWORK_GROWTH_PATH, 'utf-8')
+  } catch {
+    return []
+  }
+  const points = JSON.parse(raw) as NetworkGrowthPoint[]
+  return [...points].sort((a, b) => a.month.localeCompare(b.month))
 }

@@ -1,9 +1,10 @@
 import { TIERS } from '@/lib/tiers'
-import { readHistory, tierDeltas, totalUsers, isStale } from '@/lib/history'
+import { readHistory, readNetworkGrowth, tierDeltas, totalUsers, isStale } from '@/lib/history'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { TierCard } from './components/TierCard'
 import { TierBarChart } from './components/TierBarChart'
 import { TotalLineChart } from './components/TotalLineChart'
+import { NetworkGrowthChart } from './components/NetworkGrowthChart'
 import { HistoryTable } from './components/HistoryTable'
 import { StaleWarning } from './components/StaleWarning'
 import { ShareCard } from './components/ShareCard'
@@ -35,6 +36,7 @@ export default function Home() {
   const totalDelta = total - (previous ? totalUsers(previous.counts) : total)
   const stale = isStale(snapshots)
   const linePoints = snapshots.map((s) => ({ date: s.date, total: totalUsers(s.counts) }))
+  const networkGrowth = readNetworkGrowth()
 
   return (
     <main className="flex-1 bg-[var(--background)]">
@@ -84,6 +86,18 @@ export default function Home() {
             <TotalLineChart points={linePoints} />
           </div>
         </section>
+
+        {networkGrowth.length > 0 && (
+          <section className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-gray-700">Network growth (on-chain)</h2>
+            <p className="mb-4 mt-1 text-xs text-gray-400">
+              Cumulative count of all wallets that have ever sent a transaction on Abstract
+              mainnet, sourced from on-chain data via Dune Analytics — a different, larger
+              number than the {formatNumber(total)} tier badge-holders tracked above.
+            </p>
+            <NetworkGrowthChart points={networkGrowth} />
+          </section>
+        )}
 
         <section className="mt-8">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">Snapshot history</h2>

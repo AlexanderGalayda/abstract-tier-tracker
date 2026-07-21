@@ -1,0 +1,90 @@
+[
+  {
+    "month": "2024-10-01",
+    "cumulative": 7
+  },
+  {
+    "month": "2024-11-01",
+    "cumulative": 34
+  },
+  {
+    "month": "2024-12-01",
+    "cumulative": 48
+  },
+  {
+    "month": "2025-01-01",
+    "cumulative": 232453
+  },
+  {
+    "month": "2025-02-01",
+    "cumulative": 854309
+  },
+  {
+    "month": "2025-03-01",
+    "cumulative": 1074269
+  },
+  {
+    "month": "2025-04-01",
+    "cumulative": 1367794
+  },
+  {
+    "month": "2025-05-01",
+    "cumulative": 1933539
+  },
+  {
+    "month": "2025-06-01",
+    "cumulative": 2359690
+  },
+  {
+    "month": "2025-07-01",
+    "cumulative": 2811842
+  },
+  {
+    "month": "2025-08-01",
+    "cumulative": 3258736
+  },
+  {
+    "month": "2025-09-01",
+    "cumulative": 3476358
+  },
+  {
+    "month": "2025-10-01",
+    "cumulative": 3645827
+  },
+  {
+    "month": "2025-11-01",
+    "cumulative": 3703780
+  },
+  {
+    "month": "2025-12-01",
+    "cumulative": 3755556
+  },
+  {
+    "month": "2026-01-01",
+    "cumulative": 3791339
+  },
+  {
+    "month": "2026-02-01",
+    "cumulative": 3808946
+  },
+  {
+    "month": "2026-03-01",
+    "cumulative": 3837283
+  },
+  {
+    "month": "2026-04-01",
+    "cumulative": 3852044
+  },
+  {
+    "month": "2026-05-01",
+    "cumulative": 3871026
+  },
+  {
+    "month": "2026-06-01",
+    "cumulative": 3916527
+  },
+  {
+    "month": "2026-07-01",
+    "cumulative": 3939258
+  }
+]

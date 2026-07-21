@@ -11,3 +11,10 @@ export interface Snapshot {
 export interface HistoryFile {
   snapshots: Snapshot[]
 }
+
+export interface NetworkGrowthPoint {
+  /** First day of the month, ISO date (YYYY-MM-DD) */
+  month: string
+  /** Cumulative count of unique wallets that have ever sent a transaction on Abstract */
+  cumulative: number
+}

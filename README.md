@@ -31,9 +31,36 @@ independent, unofficial fan project. See the disclaimer on the site itself.
   connected to Vercel, triggers a fresh deployment with the new data baked in.
 - **Frontend**: `app/page.tsx` reads `data/history.json` from disk
   server-side (see [`lib/history.ts`](lib/history.ts)) and renders tier cards,
-  a log-scale bar chart, a cumulative line chart, and a full history table.
-  `GET /api/history` exposes the same data as JSON if you want to consume it
-  elsewhere.
+  a compressed-scale bar chart, a cumulative line chart, and a full history
+  table. `GET /api/history` exposes the same data as JSON if you want to
+  consume it elsewhere.
+
+### On-chain network growth (separate from the tier data above)
+
+- **Data source**: [Dune Analytics](https://dune.com)' Query API against the
+  `abstract.transactions` raw chain table — monthly cumulative count of every
+  wallet that has ever sent a transaction on Abstract mainnet. This is a
+  different, much larger number than the badge-holder counts above (they come
+  from an entirely different source and measure different things — see the
+  in-app label).
+- **Saved query**: created once via the API and reused by id
+  ([`scripts/update-network-growth.mjs`](scripts/update-network-growth.mjs)
+  hardcodes `QUERY_ID`) rather than re-created on every run. Requires a
+  `DUNE_API_KEY` env var (never hardcoded — see `.env.local` and the repo's
+  `DUNE_API_KEY` GitHub Actions secret / Vercel env var).
+- **Schedule**: its own weekly workflow,
+  [`.github/workflows/update-network-growth.yml`](.github/workflows/update-network-growth.yml)
+  (Monday 06:00 UTC) — deliberately separate from the hourly tier-snapshot
+  cron, since on-chain history barely changes day to day and each run costs
+  real Dune credits.
+- **Storage**: `data/network-growth.json`, a flat `{month, cumulative}[]`
+  array, committed the same way as `data/history.json`.
+- **Frontend**: `NetworkGrowthChart` renders the monthly series with a
+  Month/Quarter/Year toggle. Only the monthly data is ever fetched from Dune —
+  Quarter/Year just resample the same array client-side
+  ([`lib/networkGrowth.ts`](lib/networkGrowth.ts)), since for a cumulative
+  counter the value at the end of a quarter/year is just the last monthly
+  value in that period, no re-querying needed.
 
 ## Local development
 
@@ -55,6 +82,13 @@ Without `FORCE_RUN`, the script only acts once `data/history.json` is
 non-empty **and** it's currently 22:00 in `Europe/Kyiv` — otherwise it logs
 `[skip]` and exits without touching anything.
 
+To manually refresh the on-chain network growth data (needs `DUNE_API_KEY` in
+`.env.local`):
+
+```bash
+node scripts/update-network-growth.mjs
+```
+
 ## Deploying
 
 1. **Push this repo to GitHub.** The Actions workflow needs
@@ -63,14 +97,19 @@ non-empty **and** it's currently 22:00 in `Europe/Kyiv` — otherwise it logs
    beyond Actions being enabled (Settings → Actions → General → Workflow
    permissions → "Read and write permissions", if your org has tightened the
    default).
-2. **Import the repo into Vercel** (vercel.com → New Project). No environment
-   variables or database are required — it's a static-data Next.js app.
+2. **Import the repo into Vercel** (vercel.com → New Project). No database is
+   required — it's a static-data Next.js app. `DUNE_API_KEY` isn't actually
+   read at runtime by the deployed app (only by the weekly GitHub Action), but
+   it's set as a Vercel env var too in case that changes.
 3. Once connected, every push (including the automated commits from the cron
-   workflow) triggers a new deployment, so the live site always reflects the
-   latest `data/history.json`.
-4. To trigger a manual check outside the hourly schedule, run the
-   "Update tier snapshot" workflow from the Actions tab (`workflow_dispatch`),
-   optionally with `force: true` to bypass the Kyiv-22:00 gate.
+   workflows) triggers a new deployment, so the live site always reflects the
+   latest `data/history.json` and `data/network-growth.json`.
+4. To trigger a manual check outside its schedule, run the "Update tier
+   snapshot" workflow from the Actions tab (`workflow_dispatch`, optionally
+   with `force: true` to bypass the Kyiv-22:00 gate) or the "Update network
+   growth" workflow (`workflow_dispatch`, no inputs).
+5. Set the `DUNE_API_KEY` repo secret (Settings → Secrets and variables →
+   Actions) so the weekly network-growth workflow can authenticate to Dune.
 
 ## Project structure
 
@@ -78,28 +117,24 @@ non-empty **and** it's currently 22:00 in `Europe/Kyiv` — otherwise it logs
 app/
   page.tsx                 dashboard (server component, reads history.json)
   api/history/route.ts     GET endpoint exposing the same data as JSON
-  components/              TierCard, TierBarChart, TotalLineChart, HistoryTable, ...
+  components/              TierCard, TierBarChart, TotalLineChart, NetworkGrowthChart, HistoryTable, ...
 lib/
   tiers.ts                 tier id/name/threshold/color table
-  history.ts               read + derive (totals, deltas, staleness) from history.json
+  history.ts               read + derive (totals, deltas, staleness) from history.json / network-growth.json
+  networkGrowth.ts         pure month/quarter/year resampling (safe to import from client components)
   format.ts                number/date formatting helpers
 data/
-  history.json             the only persisted state — full snapshot history
+  history.json             tier snapshot history (abslysis.xyz)
+  network-growth.json      monthly cumulative on-chain wallet count (Dune)
 scripts/
-  update-snapshot.mjs      polls abslysis.xyz, appends a snapshot on real change
+  update-snapshot.mjs        polls abslysis.xyz, appends a snapshot on real change
+  update-network-growth.mjs  runs the saved Dune query, rewrites network-growth.json
 .github/workflows/
-  update-snapshot.yml      hourly cron trigger for the script above
+  update-snapshot.yml         hourly cron trigger for the tier snapshot
+  update-network-growth.yml   weekly cron trigger for the on-chain growth data
 ```
 
 ## Not included yet
 
-- **Dune Analytics on-chain growth chart** (cumulative unique addresses since
-  Abstract mainnet launch) — deliberately left out of this build. It needs a
-  real deployed backend to hold the `DUNE_API_KEY` and make server-side calls
-  to `api.dune.com` (Dune's API can't be called from a browser, and this
-  sandbox has no network path to it either). Add it as a follow-up once the
-  site is live: create a Dune query via the Query API, poll for results in a
-  scheduled function, and cache the monthly cumulative series similarly to
-  `data/history.json`.
 - Discord/Telegram push on new snapshots, CSV export, RSS feed — see the
   original spec for ideas; none are required for the MVP above.
