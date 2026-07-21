@@ -60,7 +60,7 @@ export function TierBarChart({ tiers, counts }: Props) {
               'Users',
             ]}
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} isAnimationActive={false}>
             {data.map((entry) => (
               <Cell key={entry.name} fill={entry.color} />
             ))}
