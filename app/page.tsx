@@ -1,65 +1,94 @@
-import Image from "next/image";
+import { TIERS } from '@/lib/tiers'
+import { readHistory, tierDeltas, totalUsers, isStale } from '@/lib/history'
+import { formatDateTime, formatNumber } from '@/lib/format'
+import { TierCard } from './components/TierCard'
+import { TierBarChart } from './components/TierBarChart'
+import { TotalLineChart } from './components/TotalLineChart'
+import { HistoryTable } from './components/HistoryTable'
+import { StaleWarning } from './components/StaleWarning'
+import { Disclaimer } from './components/Disclaimer'
+
+// This page only changes when the cron job commits a new snapshot (which
+// triggers a fresh deploy), but force-dynamic keeps local/dev reads honest too.
+export const dynamic = 'force-dynamic'
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+  const snapshots = readHistory()
+  const latest = snapshots[snapshots.length - 1]
+  const previous = snapshots[snapshots.length - 2]
+
+  if (!latest) {
+    return (
+      <main className="flex flex-1 items-center justify-center p-8 text-center text-gray-500">
+        No snapshots yet. Run{' '}
+        <code className="rounded bg-gray-100 px-1.5 py-0.5">
+          node scripts/update-snapshot.mjs
+        </code>{' '}
+        to seed data/history.json.
       </main>
-    </div>
-  );
+    )
+  }
+
+  const deltas = tierDeltas(latest.counts, previous?.counts)
+  const total = totalUsers(latest.counts)
+  const stale = isStale(snapshots)
+  const linePoints = snapshots.map((s) => ({ date: s.date, total: totalUsers(s.counts) }))
+
+  return (
+    <main className="flex-1 bg-[var(--background)]">
+      <header className="border-b border-gray-200 bg-white px-4 py-6 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Abstract Tier Tracker</h1>
+            <p className="text-sm text-gray-500">
+              XP tier distribution across Abstract (abs.xyz) users, tracked over time
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <div className="text-2xl font-bold tabular-nums text-gray-900">
+              {formatNumber(total)}
+            </div>
+            <div className="text-xs text-gray-400">
+              total users · updated {formatDateTime(latest.date)}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {stale && <StaleWarning lastFetchedAt={latest.fetchedAt} />}
+
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+          {TIERS.map((tier) => (
+            <TierCard
+              key={tier.id}
+              tier={tier}
+              count={latest.counts[String(tier.id)] ?? 0}
+              delta={deltas[String(tier.id)]}
+            />
+          ))}
+        </section>
+
+        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-gray-700">
+              Current distribution by tier (log scale)
+            </h2>
+            <TierBarChart tiers={TIERS} counts={latest.counts} />
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-gray-700">Total users over time</h2>
+            <TotalLineChart points={linePoints} />
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <h2 className="mb-4 text-sm font-semibold text-gray-700">Snapshot history</h2>
+          <HistoryTable tiers={TIERS} snapshots={snapshots} />
+        </section>
+      </div>
+
+      <Disclaimer />
+    </main>
+  )
 }

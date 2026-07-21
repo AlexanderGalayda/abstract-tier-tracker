@@ -1,0 +1,49 @@
+name: Update tier snapshot
+
+on:
+  schedule:
+    # Runs every hour in UTC. The actual "did the source update" check only
+    # fires at 22:00 Europe/Kyiv local time — see scripts/update-snapshot.mjs.
+    # Running hourly (instead of a hardcoded UTC hour) means the Kyiv check
+    # self-adjusts across daylight saving without editing this cron string.
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Bypass the Kyiv-22:00 gate and check right now'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-snapshot
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Poll abslysis.xyz and update history.json if changed
+        env:
+          FORCE_RUN: ${{ github.event.inputs.force == 'true' && '1' || '' }}
+        run: node scripts/update-snapshot.mjs
+
+      - name: Commit and push if data/history.json changed
+        run: |
+          if git diff --quiet -- data/history.json; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/history.json
+          git commit -m "chore: update tier snapshot"
+          git push
