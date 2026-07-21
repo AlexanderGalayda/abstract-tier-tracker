@@ -18,6 +18,15 @@ interface Props {
 export function TotalLineChart({ points }: Props) {
   const data = points.map((p) => ({ ...p, label: formatDate(p.date) }))
 
+  const values = points.map((p) => p.total)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const padding = Math.max(Math.round((max - min) * 0.15), 1)
+  const domain: [number, number] = [
+    Math.max(Math.floor(min - padding), 0),
+    Math.ceil(max + padding),
+  ]
+
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer
@@ -34,6 +43,7 @@ export function TotalLineChart({ points }: Props) {
             tickLine={false}
           />
           <YAxis
+            domain={domain}
             tick={{ fontSize: 12, fill: '#6b7280' }}
             axisLine={{ stroke: '#e5e7eb' }}
             tickLine={false}

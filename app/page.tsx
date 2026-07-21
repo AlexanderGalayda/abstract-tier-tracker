@@ -6,7 +6,8 @@ import { TierBarChart } from './components/TierBarChart'
 import { TotalLineChart } from './components/TotalLineChart'
 import { HistoryTable } from './components/HistoryTable'
 import { StaleWarning } from './components/StaleWarning'
-import { Disclaimer } from './components/Disclaimer'
+import { ShareCard } from './components/ShareCard'
+import { Footer } from './components/Footer'
 
 // This page only changes when the cron job commits a new snapshot (which
 // triggers a fresh deploy), but force-dynamic keeps local/dev reads honest too.
@@ -31,6 +32,7 @@ export default function Home() {
 
   const deltas = tierDeltas(latest.counts, previous?.counts)
   const total = totalUsers(latest.counts)
+  const totalDelta = total - (previous ? totalUsers(previous.counts) : total)
   const stale = isStale(snapshots)
   const linePoints = snapshots.map((s) => ({ date: s.date, total: totalUsers(s.counts) }))
 
@@ -65,6 +67,7 @@ export default function Home() {
               tier={tier}
               count={latest.counts[String(tier.id)] ?? 0}
               delta={deltas[String(tier.id)]}
+              total={total}
             />
           ))}
         </section>
@@ -72,7 +75,7 @@ export default function Home() {
         <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-gray-700">
-              Current distribution by tier (log scale)
+              Current distribution by tier (compressed scale)
             </h2>
             <TierBarChart tiers={TIERS} counts={latest.counts} />
           </div>
@@ -86,9 +89,19 @@ export default function Home() {
           <h2 className="mb-4 text-sm font-semibold text-gray-700">Snapshot history</h2>
           <HistoryTable tiers={TIERS} snapshots={snapshots} />
         </section>
+
+        <section className="mt-8">
+          <ShareCard
+            tiers={TIERS}
+            counts={latest.counts}
+            deltas={deltas}
+            total={total}
+            totalDelta={totalDelta}
+          />
+        </section>
       </div>
 
-      <Disclaimer />
+      <Footer />
     </main>
   )
 }
