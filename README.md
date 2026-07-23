@@ -25,10 +25,15 @@ independent, unofficial fan project. See the disclaimer on the site itself.
 - **Schedule**: [`.github/workflows/update-snapshot.yml`](.github/workflows/update-snapshot.yml)
   runs the script every hour (`0 * * * *`, UTC — GitHub Actions cron has no
   timezone support). The script itself checks the current hour in
-  `Europe/Kyiv` and only performs the real check at local 22:00, so daylight
-  saving transitions never require editing the cron string by hand. If the
-  file changed, the workflow commits and pushes it — which, once this repo is
-  connected to Vercel, triggers a fresh deployment with the new data baked in.
+  `Europe/Kyiv` and only performs the real check from local 21:00 onward, so
+  daylight saving transitions never require editing the cron string by hand.
+  It's a range rather than an exact hour because GitHub's schedule trigger can
+  drift by 2-3+ hours, so a single-hour window sometimes has no run land in it
+  at all and silently misses a whole day — change detection already no-ops
+  any extra runs after the first same-day update, so widening the window
+  can't create duplicate commits. If the file changed, the workflow commits
+  and pushes it — which, once this repo is connected to Vercel, triggers a
+  fresh deployment with the new data baked in.
 - **Frontend**: `app/page.tsx` reads `data/history.json` from disk
   server-side (see [`lib/history.ts`](lib/history.ts)) and renders tier cards,
   a compressed-scale bar chart, a cumulative line chart, and a full history
@@ -72,15 +77,15 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000). `data/history.json` is
 already seeded with two real snapshots so the dashboard renders immediately.
 
-To manually pull a fresh snapshot (bypassing the Kyiv-22:00 gate):
+To manually pull a fresh snapshot (bypassing the Kyiv-21:00 gate):
 
 ```bash
 FORCE_RUN=1 node scripts/update-snapshot.mjs
 ```
 
 Without `FORCE_RUN`, the script only acts once `data/history.json` is
-non-empty **and** it's currently 22:00 in `Europe/Kyiv` — otherwise it logs
-`[skip]` and exits without touching anything.
+non-empty **and** it's currently 21:00 or later in `Europe/Kyiv` — otherwise
+it logs `[skip]` and exits without touching anything.
 
 To manually refresh the on-chain network growth data (needs `DUNE_API_KEY` in
 `.env.local`):
@@ -106,7 +111,7 @@ node scripts/update-network-growth.mjs
    latest `data/history.json` and `data/network-growth.json`.
 4. To trigger a manual check outside its schedule, run the "Update tier
    snapshot" workflow from the Actions tab (`workflow_dispatch`, optionally
-   with `force: true` to bypass the Kyiv-22:00 gate) or the "Update network
+   with `force: true` to bypass the Kyiv-21:00 gate) or the "Update network
    growth" workflow (`workflow_dispatch`, no inputs).
 5. Set the `DUNE_API_KEY` repo secret (Settings → Secrets and variables →
    Actions) so the weekly network-growth workflow can authenticate to Dune.

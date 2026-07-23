@@ -2,8 +2,13 @@
 // Polls abslysis.xyz for the latest Abstract tier user counts and appends a
 // new snapshot to data/history.json ONLY when the source's own timestamp has
 // advanced. Run by .github/workflows/update-snapshot.yml every hour; the
-// Kyiv-22:00 gate below (not the cron schedule) decides whether a check
-// actually happens, so daylight-saving shifts never need manual cron edits.
+// Kyiv-21:00-onward gate below (not the cron schedule) decides whether a
+// check actually happens, so daylight-saving shifts never need manual cron
+// edits. This is a range, not an exact hour match, because GitHub Actions'
+// schedule trigger can drift by 2-3+ hours, so a single-hour window
+// sometimes has no run land in it at all and silently skips a whole day.
+// Any run from 21:00 Kyiv onward proceeds; the change-detection logic below
+// already no-ops extra same-day runs, so this can't create duplicate commits.
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -67,8 +72,8 @@ async function main() {
   // first bootstrap run should seed data regardless of what time it is.
   if (history.length > 0 && !force) {
     const hour = kyivHourNow()
-    if (hour !== 22) {
-      console.log(`[skip] Kyiv local hour is ${hour}, not 22. No check performed.`)
+    if (hour < 21) {
+      console.log(`[skip] Kyiv local hour is ${hour}, before the 21:00 window. No check performed.`)
       return
     }
   }

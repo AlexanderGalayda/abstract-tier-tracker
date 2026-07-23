@@ -3,14 +3,18 @@ name: Update tier snapshot
 on:
   schedule:
     # Runs every hour in UTC. The actual "did the source update" check only
-    # fires at 22:00 Europe/Kyiv local time — see scripts/update-snapshot.mjs.
-    # Running hourly (instead of a hardcoded UTC hour) means the Kyiv check
-    # self-adjusts across daylight saving without editing this cron string.
+    # fires from 21:00 Europe/Kyiv local time onward — see
+    # scripts/update-snapshot.mjs. Running hourly (instead of a hardcoded UTC
+    # hour) means the Kyiv window self-adjusts across daylight saving without
+    # editing this cron string. It's a range rather than a single hour because
+    # GitHub's schedule trigger can drift by 2-3+ hours, so a one-hour window
+    # sometimes has no run land in it at all; change-detection in the script
+    # already no-ops any extra runs after the first same-day update.
     - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       force:
-        description: 'Bypass the Kyiv-22:00 gate and check right now'
+        description: 'Bypass the Kyiv-21:00 gate and check right now'
         type: boolean
         default: false
 

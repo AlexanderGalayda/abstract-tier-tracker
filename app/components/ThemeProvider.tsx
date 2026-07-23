@@ -1,8 +1,42 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
+
+const listeners = new Set<() => void>()
+
+// useSyncExternalStore's whole purpose is "external state that can legitimately
+// differ between server and client" — it renders getServerSnapshot() on the
+// server AND on the client's first hydration pass (guaranteeing no mismatch),
+// then re-renders with the real getSnapshot() right after. That's exactly
+// this case: the server has no access to localStorage, but the inline script
+// in layout.tsx already set the `dark` class on <html> before hydration, so
+// the page's actual colors are correct from first paint regardless — this
+// only drives JS-level theme awareness (the toggle icon, Recharts colors).
+function getSnapshot(): Theme {
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+}
+
+function getServerSnapshot(): Theme {
+  return 'light'
+}
+
+function subscribe(onStoreChange: () => void) {
+  listeners.add(onStoreChange)
+  return () => listeners.delete(onStoreChange)
+}
+
+function setDomTheme(next: Theme) {
+  document.documentElement.classList.toggle('dark', next === 'dark')
+  try {
+    localStorage.setItem('theme', next)
+  } catch {
+    // localStorage can throw in private-browsing/blocked-storage contexts — theme
+    // still applies for this session, it just won't persist across reloads.
+  }
+  listeners.forEach((listener) => listener())
+}
 
 const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void }>({
   theme: 'light',
@@ -10,35 +44,10 @@ const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void }>({
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Always starts 'light', matching what the server renders with no access to
-  // localStorage — this guarantees the first client render can't mismatch
-  // hydration (a real mismatch here is severe enough that React discards and
-  // regenerates the tree, which is worse than one harmless correction below).
-  // The page's actual dark colors don't wait on this: the inline script in
-  // layout.tsx already set the `dark` class on <html> before hydration, so
-  // CSS `dark:` variants are correct from first paint regardless of this
-  // state. This only drives JS-level theme awareness (the toggle icon,
-  // Recharts colors), which corrects itself a moment after mount.
-  const [theme, setTheme] = useState<Theme>('light')
-
-  useEffect(() => {
-    if (document.documentElement.classList.contains('dark')) {
-      setTheme('dark')
-    }
-  }, [])
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   function toggleTheme() {
-    setTheme((prev) => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark'
-      document.documentElement.classList.toggle('dark', next === 'dark')
-      try {
-        localStorage.setItem('theme', next)
-      } catch {
-        // localStorage can throw in private-browsing/blocked-storage contexts — theme
-        // still applies for this session, it just won't persist across reloads.
-      }
-      return next
-    })
+    setDomTheme(theme === 'dark' ? 'light' : 'dark')
   }
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
